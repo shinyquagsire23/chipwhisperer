@@ -119,6 +119,7 @@ class OpenADCQt(object):
         self.ser = ser
         # See if device seems to be attached
         self.sc = openadc.OpenADCInterface(self.ser)
+        print("Connected")
 
         self.parm_hwinfo = openadc.HWInformation(self.sc)
 

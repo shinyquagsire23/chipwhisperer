@@ -67,46 +67,12 @@ class OpenADCInterface_NAEUSBChip(object):
         if self.ser is None:
             self.dev = CWL.CWLiteUSB()
 
-            try:
-                nae_products = [0xACE2, 0xACE3]
-                possible_sn = self.dev.get_possible_devices(nae_products)
-                serial_numbers = []
-                if len(possible_sn) > 1:
-                    #Update list...
-                    if sn is None:
-                        snlist = DictType({'Select Device to Connect':None})
-                        for d in possible_sn:
-                            snlist[str(d['sn']) + " (" + str(d['product']) + ")"] = d['sn']
-                            serial_numbers.append("sn = {} ({})".format(str(d['sn']), str(d['product'])))
-                            pass
-                        raise Warning("Multiple ChipWhisperers detected. Please specify device from the following list using cw.scope(sn=<SN>): \n{}".format(serial_numbers))
-                else:
-                    pass
-                    #if possible_sn[0]['sn'] !=
-                    #sn = None
-                found_id = self.dev.con(idProduct=nae_products, serial_number=sn)
-            except (IOError, ValueError):
-                raise Warning('Could not connect to "%s". It may have been disconnected, is in an error state, or is being used by another tool.' % self.getName())
-
-            if found_id != self.last_id:
-                logging.info("Detected ChipWhisperer with USB ID %x - switching firmware loader" % found_id)
-            self.last_id = found_id
-
-            self.getFWConfig().setInterface(self.dev.fpga)
-            try:
-                self.getFWConfig().loadRequired()
-            except:
-                self.dev.dis()
-                self.dev.usbdev().close()
-                raise
+            nae_products = [0xACE2, 0xACE3]
+            #possible_sn = self.dev.get_possible_devices(nae_products)
+            handle = self.dev.get_possible_devices(nae_products)
+            self.dev.con(handle)
             self.ser = self.dev.usbdev()
 
-        try:
-            self.scope.con(self.ser)
-            logging.info('OpenADC Found, Connecting')
-        except IOError as e:
-            exctype, value = sys.exc_info()[:2]
-            raise IOError("OpenADC: " + (str(exctype) + str(value)))
 
     def dis(self):
         if self.ser is not None:

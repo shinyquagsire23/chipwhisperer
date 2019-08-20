@@ -322,18 +322,18 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         self.handle = self.desc.open()
         self.usbdev = self.handle
         self.handle.claimInterface(0)
-        #self.handle.claimInterface(1)
+        self.handle.claimInterface(1)
 
-        #logging.info('Found %s, Serial Number = %s' % (name, self.snum))
+        logging.info('Found %s, Serial Number = %s' % (name, self.snum))
 
-        #self._usbdev = dev
+        self._usbdev = dev
         self.rep = 0x81
         self.wep = 0x02
-        #self.handle.claimInterface(usb1.ENDPOINT_OUT | self.wep)
-        #self.handle.claimInterface(usb1.ENDPOINT_IN | self.rep)
+        self.handle.claimInteface(self.rep)
+        self.handle.claimInteface(self.wep)
         self._timeout = 200
 
-        return self.desc
+        return foundId
 
     def close(self):
         """Close the USB connection"""
@@ -351,11 +351,10 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
             idProduct = [None]
 
         ctx = usb1.USBContext()
-        desc = ctx.getByVendorIDAndProductID(0x2B3E, 0xACE2, skip_on_error=True)
+        handle = ctx.getByVendorIDAndProductID(0x2B3E, 0xACE2, skip_on_error=True)
         if desc is None:
             raise OSError("Could not open USB device")
         return desc
-
 
     def sendCtrl(self, cmd, value=0, data=[]):
         """
@@ -370,7 +369,7 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         Read data from control endpoint
         """
         # Vendor-specific, IN, interface control transfer
-        return self.handle.controlRead(0xC1, cmd, value, 0, dlen, timeout=self._timeout)
+        return self.handle.controlRead(0xC1, cmd, value, 0, dlen)
         #return self.usbdev().ctrl_transfer(0xC1, cmd, value, 0, dlen, timeout=self._timeout)
 
 
@@ -423,15 +422,11 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
 
         self.sendCtrl(cmd, data=pload)
 
-        print(pload)
-
         # Get data
         if cmd == self.CMD_WRITEMEM_BULK:
             data = self.handle.bulkWrite(self.wep, data, timeout=self._timeout)
             #data = self.usbdev().write(self.wep, data, timeout=self._timeout)
         else:
-            #logging.warning("Write ignored")
-
             pass
 
         return data
@@ -460,7 +455,6 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         return self.handle.bulkRead(self.rep, dbuf, timeout)
         #return self.usbdev().read(self.rep, dbuf, timeout)
 
-
 class NAEUSB(object):
     """
     USB Interface for NewAE Products with Custom USB Firmware. This function allows use of a daemon backend, as it is
@@ -483,14 +477,10 @@ class NAEUSB(object):
         self._usbdev = None
         self.handle=None
         self.usbtx = NAEUSB_Backend()
-        self.usbseralizer = self.usbtx
+        self.usbseralizer = NAEUSB_Serializer(self.usbtx.txrx)
 
     def get_possible_devices(self, idProduct):
         return self.usbseralizer.get_possible_devices(idProduct)
-
-    #unfortunate hack
-    def write():
-        return self.usbtx.handle.write(self.wep, data, timeout=usbtx.handle)
 
     def con(self, idProduct=[0xACE2], connect_to_first=False, serial_number=None):
         """
@@ -506,6 +496,10 @@ class NAEUSB(object):
         fwver = self.readFwVersion()
         logging.info('SAM3U Firmware version = %d.%d b%d' % (fwver[0], fwver[1], fwver[2]))
 
+        latest = fwver[0] > fw_latest[0] or (fwver[0] == fw_latest[0] and fwver[1] >= fw_latest[1])
+        if not latest:
+            logging.warning('Your firmware is outdated - latest is %d.%d' % (fw_latest[0], fw_latest[1]) +
+                            '. Suggested to update firmware, as you may experience errors')
         return handle
 
     def usbdev(self):

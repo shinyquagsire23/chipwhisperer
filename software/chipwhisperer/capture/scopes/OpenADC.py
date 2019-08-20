@@ -36,6 +36,8 @@ from chipwhisperer.common.utils.util import dict_to_str
 from collections import OrderedDict
 import time
 
+
+# noinspection PyInterpreter
 class OpenADC(ScopeTemplate, util.DisableNewAttr):
     """OpenADC scope object.
 
@@ -202,7 +204,9 @@ class OpenADC(ScopeTemplate, util.DisableNewAttr):
         if self.scopetype is not None:
             self.scopetype.con(sn)
 
-            self.qtadc.sc.usbcon = self.scopetype.ser._usbdev
+            self.qtadc.con(self.scopetype.ser)
+            print(self.scopetype.ser)
+            #self.qtadc.sc.usbcon = self.scopetype.ser._usbdev
 
             cwtype = self._getCWType()
             if cwtype != "":
