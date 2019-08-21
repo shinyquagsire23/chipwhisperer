@@ -69,8 +69,8 @@ class OpenADCInterface_NAEUSBChip(object):
 
             nae_products = [0xACE2, 0xACE3]
             #possible_sn = self.dev.get_possible_devices(nae_products)
-            handle = self.dev.get_possible_devices(nae_products)
-            self.dev.con(handle)
+            #handle = self.dev.get_possible_devices(nae_products)
+            self.dev.con(idProduct=nae_products, serial_number=sn)
             self.cwFirmwareConfig[0xACE2].setInterface(self.dev.fpga)
             try:
                 self.cwFirmwareConfig[0xACE2].loadFPGA()

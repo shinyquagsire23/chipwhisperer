@@ -312,25 +312,45 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
             return self.make_cmd(self.ERROR, e)
 
         return self.make_cmd(self.ACK, response)
-
-    def open(self, serial_number=None, connect_to_first=False):
+    def is_accessable(self, dev):
+        try:
+            dev.getSerialNumber()
+            return True
+        except:
+            return False
+    def open(self, serial_number=None, idProduct=None, connect_to_first=False):
         """
         Connect to device using default VID/PID
         """
 
-        self.desc = self.get_possible_devices(dictonly=False)
-        self.handle = self.desc.open()
-        self.usbdev = self.handle
+        devlist = self.get_possible_devices(idProduct, serial_number)
+        if len(devlist) == 0:
+            add_info = ""
+            if serial_number:
+                add_info = " with serial number {}".format(serial_number)
+            raise OSError("Could not find ChipWhisperer{}. Is it connected?".format(add_info))
+
+        if len(devlist) > 1:
+            #sns = [dev.getSerialNumber() for dev in devlist]
+            sns = []
+            raise Warning("Multiple ChipWhisperers connected, please specify serial number." \
+                          "\nDevices:\n \
+                          {}".format(sns))
+        self.device = devlist[0]
+        try:
+            self.handle = self.device.open()
+        except usb1.USBError as e:
+            logging.Error("Could not open USB device.")
+            if e.value == -3:
+                logging.Error("Check that the ChipWhisperer is not already connected")
+        self._usbdev = self.handle
         self.handle.claimInterface(0)
-        #self.handle.claimInterface(1)
 
-        #logging.info('Found %s, Serial Number = %s' % (name, self.snum))
+        self.sn = self.handle.getSerialNumber()
+        print('Found %s, Serial Number = %s' % (self.handle.getProduct(), self.sn))
 
-        #self._usbdev = dev
         self.rep = 0x81
         self.wep = 0x02
-        #self.handle.claimInterface(usb1.ENDPOINT_OUT | self.wep)
-        #self.handle.claimInterface(usb1.ENDPOINT_IN | self.rep)
         self._timeout = 200
 
         return self.handle
@@ -338,23 +358,48 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
     def close(self):
         """Close the USB connection"""
         try:
-            usb.util.dispose_resources(self.usbdev())
-        except usb.USBError as e:
+            del self.handle
+            del self.device
+        except:
             logging.info('USB Failure calling dispose_resources: %s' % str(e))
 
 
-    def get_possible_devices(self, idProduct=None, dictonly=True):
-        """
-        Get a list of matching devices being based a list of PIDs. Returns list of usbdev that match (or empty if none)
-        """
-        if idProduct is None:
-            idProduct = [None]
+    def get_possible_devices(self, idProduct=None, sn=None, dictonly=True):
+        """Get list of USB devices that match NewAE vendor ID (0x2b3e) and
+        optionally a product ID
 
-        self.ctx = usb1.USBContext()
-        self.desc = self.ctx.getByVendorIDAndProductID(0x2B3E, 0xACE2, skip_on_error=True)
-        if self.desc is None:
-            raise OSError("Could not open USB device")
-        return self.desc
+        Checks VendorID, then
+
+        Args:
+            idProduct (list of int, optional): If not None, the product ID to match
+            sn (string, optional): If not None,
+
+        Returns:
+            List of USBDevice that match Vendor/Product IDs
+            """
+
+        def get_naelist(dev_list):
+            return [dev for dev in dev_list if dev.getVendorID() == 0x2b3e]
+
+        def get_prodlist(dev_list):
+            if not idProduct: #skip if product ID not defined
+                return dev_list
+            return [dev for dev in dev_list if dev.getProductID() in idProduct]
+
+        def get_snlist(dev_list):
+            if not sn:
+                return dev_list
+            ret = []
+            for dev in dev_list:
+                try:
+                    if dev.getSerialNumber() == sn:
+                        ret.append(dev)
+                except usb1.USBErrorAccess:
+                    continue
+            return ret
+        self.usb_ctx = usb1.USBContext()
+        dev_list = self.usb_ctx.getDeviceList(skip_on_error=True, skip_on_access_error=True)
+        return get_snlist(get_prodlist(get_naelist(dev_list)))
 
 
     def sendCtrl(self, cmd, value=0, data=[]):
@@ -489,7 +534,7 @@ class NAEUSB(object):
         return self.usbseralizer.get_possible_devices(idProduct)
 
     #unfortunate hack
-    def write():
+    def write(self):
         return self.usbtx.handle.write(self.wep, data, timeout=usbtx.handle)
 
     def con(self, idProduct=[0xACE2], connect_to_first=False, serial_number=None):
@@ -497,23 +542,21 @@ class NAEUSB(object):
         Connect to device using default VID/PID
         """
 
-        handle = self.get_possible_devices(idProduct)
+        self.usbseralizer.open(idProduct=idProduct, serial_number=serial_number)
 
 
-        self.usbseralizer.open(handle)
-
-
+        self.snum=self.usbtx.sn
         fwver = self.readFwVersion()
         logging.info('SAM3U Firmware version = %d.%d b%d' % (fwver[0], fwver[1], fwver[2]))
 
-        return handle
+        return True
 
     def usbdev(self):
         raise AttributeError("Do Not Call Me")
 
     def close(self):
         """Close USB connection."""
-        self.usbseralizer.close(self.snum)
+        self.usbseralizer.close()
         self.snum = None
 
     def readFwVersion(self):
