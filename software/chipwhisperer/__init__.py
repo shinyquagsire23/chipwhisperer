@@ -168,7 +168,7 @@ def import_project(filename, file_type='zip', overwrite=False):
     return proj
 
 
-def scope(scope_type=scopes.OpenADC, sn=None):
+def scope(scope_type=None, sn=None):
     """Create a scope object and connect to it.
 
     This function allows any type of scope to be created. By default, the
@@ -205,8 +205,8 @@ def scope(scope_type=scopes.OpenADC, sn=None):
         Added autodetection of scope_type
     """
     from chipwhisperer.common.utils.util import get_cw_type
-    #if scope_type is None:
-        #scope_type = get_cw_type(sn)
+    if scope_type is None:
+        scope_type = get_cw_type(sn)
     scope = scope_type()
     scope.con(sn)
     return scope

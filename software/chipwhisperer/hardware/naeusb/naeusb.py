@@ -322,32 +322,39 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         """
         Connect to device using default VID/PID
         """
-
-        devlist = self.get_possible_devices(idProduct, serial_number)
-        if len(devlist) == 0:
+        inaccessable_in_devlist = False
+        dev_list = self.get_possible_devices(idProduct, serial_number)
+        naelist = self.get_naelist(dev_list)
+        naelist_accessable = [dev for dev in naelist if self.is_accessable(dev)]
+        if len(naelist) == 0:
             add_info = ""
             if serial_number:
                 add_info = " with serial number {}".format(serial_number)
             raise OSError("Could not find ChipWhisperer{}. Is it connected?".format(add_info))
 
-        if len(devlist) > 1:
-            #sns = [dev.getSerialNumber() for dev in devlist]
-            sns = []
+        if len(naelist_accessable) == 0:
+            logging.error("Found ChipWhisperer, but device not accessable")
+            logging.error("Try checking that you have permission to access the device and that it isn't being used elsewhere (i.e. in another Python instance, or in this script)")
+            self.handle = naelist[0].open() #should throw error, if not, it's fine I guess
+
+        if len(naelist_accessable) > 1:
+            sns = ["{}:{}".format(dev.getProduct(), dev.getSerialNumber()) for dev in naelist_accessable]
             raise Warning("Multiple ChipWhisperers connected, please specify serial number." \
                           "\nDevices:\n \
                           {}".format(sns))
-        self.device = devlist[0]
+        self.device = naelist_accessable[0]
         try:
             self.handle = self.device.open()
         except usb1.USBError as e:
-            logging.Error("Could not open USB device.")
+            logging.error("Could not open USB device.")
             if e.value == -3:
-                logging.Error("Check that the ChipWhisperer is not already connected")
+                logging.error("Check that the ChipWhisperer is not already connected")
+                logging.error("Or that you have the proper permissions to access it")
         self._usbdev = self.handle
         self.handle.claimInterface(0)
 
         self.sn = self.handle.getSerialNumber()
-        print('Found %s, Serial Number = %s' % (self.handle.getProduct(), self.sn))
+        logging.info('Found %s, Serial Number = %s' % (self.handle.getProduct(), self.sn))
 
         self.rep = 0x81
         self.wep = 0x02
@@ -363,6 +370,8 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         except:
             logging.info('USB Failure calling dispose_resources: %s' % str(e))
 
+    def get_naelist(self, dev_list):
+        return [dev for dev in dev_list if dev.getVendorID() == 0x2b3e]
 
     def get_possible_devices(self, idProduct=None, sn=None, dictonly=True):
         """Get list of USB devices that match NewAE vendor ID (0x2b3e) and
@@ -377,10 +386,6 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         Returns:
             List of USBDevice that match Vendor/Product IDs
             """
-
-        def get_naelist(dev_list):
-            return [dev for dev in dev_list if dev.getVendorID() == 0x2b3e]
-
         def get_prodlist(dev_list):
             if not idProduct: #skip if product ID not defined
                 return dev_list
@@ -399,7 +404,7 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
             return ret
         self.usb_ctx = usb1.USBContext()
         dev_list = self.usb_ctx.getDeviceList(skip_on_error=True, skip_on_access_error=True)
-        return get_snlist(get_prodlist(get_naelist(dev_list)))
+        return get_snlist(get_prodlist(self.get_naelist(dev_list)))
 
 
     def sendCtrl(self, cmd, value=0, data=[]):
