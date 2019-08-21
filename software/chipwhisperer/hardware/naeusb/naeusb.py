@@ -333,7 +333,7 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         #self.handle.claimInterface(usb1.ENDPOINT_IN | self.rep)
         self._timeout = 200
 
-        return self.desc
+        return self.handle
 
     def close(self):
         """Close the USB connection"""
@@ -350,11 +350,11 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         if idProduct is None:
             idProduct = [None]
 
-        ctx = usb1.USBContext()
-        desc = ctx.getByVendorIDAndProductID(0x2B3E, 0xACE2, skip_on_error=True)
-        if desc is None:
+        self.ctx = usb1.USBContext()
+        self.desc = self.ctx.getByVendorIDAndProductID(0x2B3E, 0xACE2, skip_on_error=True)
+        if self.desc is None:
             raise OSError("Could not open USB device")
-        return desc
+        return self.desc
 
 
     def sendCtrl(self, cmd, value=0, data=[]):
@@ -423,7 +423,6 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
 
         self.sendCtrl(cmd, data=pload)
 
-        print(pload)
 
         # Get data
         if cmd == self.CMD_WRITEMEM_BULK:
@@ -436,7 +435,6 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
 
         return data
 
-
     def cmdWriteBulk(self, data):
         """
         Write data directly to the bulk endpoint.
@@ -445,6 +443,8 @@ class NAEUSB_Backend(NAEUSB_Serializer_base):
         """
         self.handle.bulkWrite(self.wep, data, timeout=self._timeout)
         #self.usbdev().write(self.wep, data, timeout=self._timeout)
+
+    writeBulk = cmdWriteBulk
 
 
     def flushInput(self):

@@ -71,6 +71,13 @@ class OpenADCInterface_NAEUSBChip(object):
             #possible_sn = self.dev.get_possible_devices(nae_products)
             handle = self.dev.get_possible_devices(nae_products)
             self.dev.con(handle)
+            self.cwFirmwareConfig[0xACE2].setInterface(self.dev.fpga)
+            try:
+                self.cwFirmwareConfig[0xACE2].loadFPGA()
+            except:
+                self.dev.dis()
+                self.dev.usbdev.close()
+                raise
             self.ser = self.dev.usbdev()
 
 

@@ -1468,7 +1468,6 @@ class OpenADCInterface(object):
 
     def __init__(self, serial_instance):
         self.serial = serial_instance
-        print(self.serial)
         self.offset = 0.5
         self.ddrMode = False
         self.sysFreq = 0
