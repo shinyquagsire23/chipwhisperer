@@ -1,5 +1,16 @@
 # ChipWhisperer
 
+**This is an experimental branch for developing WinUSB (libusb) support. It may be in a broken state**
+
+WinUSB (aka using a libusb driver instead of a libusb0 driver) requires changing from PyUSB to libusb1 currently due to a bug with PyUSB (see  for more info).
+
+If you want to try this branch out, you'll need to:
+
+1. Uninstall and delete the ChipWhisperer driver from Device Manager.
+1. Use Zadig to install the WinUSB driver to the ChipWhisperer.
+
+Other operating systems should work as is.
+
 [Wiki](https://wiki.newae.com/V5:Main_Page) |[Documentation](https://chipwhisperer.readthedocs.io) |[Knowledge Base](https://wiki.newae.com/Category:Knowledge_Base) | [Forum](http://www.newae.com/forum) | [Store](https://store.newae.com) | [NewAE](http://newae.com)
 
 ChipWhisperer is an open source toolchain dedicated to hardware security research. This toolchain consists of several layers of open source components:
@@ -14,7 +25,7 @@ ChipWhisperer is an open source toolchain dedicated to hardware security researc
 The biggest (and most breaking) change is here. ChipWhisperer 5.0 uses Python 3 & Juypter Notebooks. Here is a brief summary of improvements:
 
 * Uses Jupyter Notebooks
-* Python 3 
+* Python 3
 * Fully documented API (finally)
 * 19 Jupyter notebook tutorials for side-channel analysis with ChipWhisperer
 * 5x improved capture speed
@@ -24,7 +35,7 @@ The biggest (and most breaking) change is here. ChipWhisperer 5.0 uses Python 3 
 
 An overview of the major changes can be found on the new ReadtheDocs [Overview Page](https://chipwhisperer.readthedocs.io/en/latest/getting-started.html).
 
-We highly recommend you switch to CW5 as all development since last year has been for CW5, and will continue this way. The final tagged version of CW4 is 4.0.5, it can be found in the **develop** branch if you insist. 
+We highly recommend you switch to CW5 as all development since last year has been for CW5, and will continue this way. The final tagged version of CW4 is 4.0.5, it can be found in the **develop** branch if you insist.
 
 ## Getting Started
 First time using ChipWhisperer? Check out these links:
