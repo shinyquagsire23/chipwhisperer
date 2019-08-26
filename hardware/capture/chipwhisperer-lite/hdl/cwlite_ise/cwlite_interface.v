@@ -36,8 +36,8 @@ module cwlite_interface(
 	 /* Spare Lines - AVR Programming */
 	 output wire 		target_nRST,
 	 input wire 		target_MISO,
-	 output wire 		target_MOSI,
-	 output wire 		target_SCK,
+	 inout wire 		target_MOSI,
+	 inout wire 		target_SCK,
 	 	 
 	 /* Target IO Interfaces */
 	 inout wire			target_io4, // Normally trigger
@@ -214,6 +214,10 @@ module cwlite_interface(
 		.trigger_io2_i(target_io2),
 		.trigger_io3_i(target_io3),
 		.trigger_io4_i(target_io4),
+		.trigger_io5_i(target_MOSI),
+		.trigger_io6_i(target_SCK),
+		.trigger_io7_i(target_PDIC),
+		.trigger_io8_i(target_PDID),
 		//.trigger_ext_o(advio_trigger_line),
 		.trigger_advio_i(1'b0),
 		.trigger_anapattern_i(1'b0),
@@ -224,6 +228,10 @@ module cwlite_interface(
 		.targetio2_io(target_io2),
 		.targetio3_io(target_io3),
 		.targetio4_io(target_io4),
+		.targetio5_io(target_MOSI),
+		.targetio6_io(target_SCK),
+		.targetio7_io(target_PDIC),
+		.targetio8_io(target_PDID),
 		
 		.hsglitcha_o(glitchout_highpwr),
 		.hsglitchb_o(glitchout_lowpwr),
@@ -308,6 +316,7 @@ module cwlite_interface(
 	                      (enable_avrprog) ? USB_spi0_mosi_i : 1'bZ;
 	 assign target_SCK = (target_highz) ? 1'bZ :
 	                      (enable_avrprog) ? USB_spi0_sck_i : 1'bZ;
+	 
 	 assign USB_spi0_miso_o = (enable_avrprog) ? target_MISO : ext_miso;	
 	 
 	 wire sc_enable = 1'b1;

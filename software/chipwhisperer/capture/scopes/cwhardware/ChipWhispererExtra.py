@@ -508,6 +508,10 @@ class TriggerSettings(util.DisableNewAttr):
             'tio2': self.cwe.PIN_RTIO2,
             'tio3': self.cwe.PIN_RTIO3,
             'tio4': self.cwe.PIN_RTIO4,
+            'tio5': self.cwe.PIN_RTIO5,
+            'tio6': self.cwe.PIN_RTIO6,
+            'tio7': self.cwe.PIN_RTIO7,
+            'tio8': self.cwe.PIN_RTIO8,
         }
 
         self.last_module = "basic"
@@ -591,6 +595,22 @@ class TriggerSettings(util.DisableNewAttr):
 
         if pins & self.cwe.PIN_RTIO4:
             tstring.append("tio4")
+            tstring.append(modes)
+        
+        if pins & self.cwe.PIN_RTIO5:
+            tstring.append("tio5")
+            tstring.append(modes)
+        
+        if pins & self.cwe.PIN_RTIO6:
+            tstring.append("tio6")
+            tstring.append(modes)
+        
+        if pins & self.cwe.PIN_RTIO7:
+            tstring.append("tio7")
+            tstring.append(modes)
+
+        if pins & self.cwe.PIN_RTIO8:
+            tstring.append("tio8")
             tstring.append(modes)
 
         if pins & self.cwe.PIN_FPA:
@@ -787,6 +807,10 @@ class CWExtraSettings(object):
     PIN_RTIO2 = 0x08
     PIN_RTIO3 = 0x10
     PIN_RTIO4 = 0x20
+    PIN_RTIO5 = 0x40
+    PIN_RTIO6 = 0x80
+    PIN_RTIO7 = 0x100
+    PIN_RTIO8 = 0x200
     MODE_OR = 0x00
     MODE_AND = 0x01
     MODE_NAND = 0x02
@@ -1120,13 +1144,15 @@ class CWExtraSettings(object):
 
     def setPins(self, pins, mode):
         d = bytearray()
-        d.append((mode << 6) | pins)
+        d.append(pins & 0xFF)
+        d.append((mode << 6) | (pins >> 8) & 0x3F)
         self.oa.sendMessage(CODE_WRITE, ADDR_TRIGSRC, d)
 
     def getPins(self):
-        resp = self.oa.sendMessage(CODE_READ, ADDR_TRIGSRC, Validate=False, maxResp=1)
-        pins = resp[0] & 0x3F
-        mode = resp[0] >> 6
+        resp = self.oa.sendMessage(CODE_READ, ADDR_TRIGSRC, Validate=False, maxResp=2)
+        
+        pins = resp[0] | ((resp[1] & 0x3F) << 8)
+        mode = resp[1] >> 6
         return(pins, mode)
 
     def setTriggerModule(self, module):

@@ -53,6 +53,10 @@ module reg_chipwhisperer(
 	input				trigger_io2_i,
 	input				trigger_io3_i,
 	input				trigger_io4_i,
+	input				trigger_io5_i,
+	input				trigger_io6_i,
+	input				trigger_io7_i,
+	input				trigger_io8_i,
 	
 	/* Advanced IO Trigger Connections */
 	output			trigger_ext_o,	
@@ -69,7 +73,11 @@ module reg_chipwhisperer(
 	inout				targetio2_io,
 	inout				targetio3_io,
 	inout				targetio4_io,
-	
+	inout				targetio5_io,
+	inout				targetio6_io,
+	inout				targetio7_io,
+	inout				targetio8_io,
+
 	output			hsglitcha_o,
 	output			hsglitchb_o,
 	
@@ -227,14 +235,13 @@ module reg_chipwhisperer(
  */
     
 	 reg [7:0] registers_cwextclk;
-	 reg [7:0] registers_cwtrigsrc;
+	 reg [15:0] registers_cwtrigsrc;
 	 reg [7:0] registers_cwtrigmod;
 	 reg [63:0] registers_iorouting;
 	 reg [3:0] registers_ioread;
   	 
 	 wire targetio_highz;
 	 
-	 assign led_auxi = registers_cwtrigsrc[0];
 	 assign led_auxo = registers_cwextclk[4] | registers_cwextclk[3] | registers_cwtrigmod[3];
 	
 	 //Do to no assumed phase relationship we use regular old fabric for switching
@@ -436,18 +443,26 @@ module reg_chipwhisperer(
 								 ((registers_cwtrigsrc[2] & trigger_io1_i) | ~registers_cwtrigsrc[2]) &
 								 ((registers_cwtrigsrc[3] & trigger_io2_i) | ~registers_cwtrigsrc[3]) &
 								 ((registers_cwtrigsrc[4] & trigger_io3_i) | ~registers_cwtrigsrc[4]) &
-								 ((registers_cwtrigsrc[5] & trigger_io4_i) | ~registers_cwtrigsrc[5]);
+								 ((registers_cwtrigsrc[5] & trigger_io4_i) | ~registers_cwtrigsrc[5]) &
+								 ((registers_cwtrigsrc[6] & trigger_io5_i) | ~registers_cwtrigsrc[6]) &
+								 ((registers_cwtrigsrc[7] & trigger_io6_i) | ~registers_cwtrigsrc[7]) &
+								 ((registers_cwtrigsrc[8] & trigger_io7_i) | ~registers_cwtrigsrc[8]) &
+								 ((registers_cwtrigsrc[9] & trigger_io8_i) | ~registers_cwtrigsrc[9]);
 								 
 	 assign trigger_or  = (registers_cwtrigsrc[0] & trigger_fpa) |
 								 (registers_cwtrigsrc[1] & trigger_fpb_i) |
 								 (registers_cwtrigsrc[2] & trigger_io1_i) |
 								 (registers_cwtrigsrc[3] & trigger_io2_i) |
 								 (registers_cwtrigsrc[4] & trigger_io3_i) |
-								 (registers_cwtrigsrc[5] & trigger_io4_i);	
+								 (registers_cwtrigsrc[5] & trigger_io4_i) |
+								 (registers_cwtrigsrc[6] & trigger_io5_i) |
+								 (registers_cwtrigsrc[7] & trigger_io6_i) |
+								 (registers_cwtrigsrc[8] & trigger_io7_i) | 
+								 (registers_cwtrigsrc[9] & trigger_io8_i);	
 								 
-	 assign trigger_ext =  (registers_cwtrigsrc[7:6] == 2'b00) ? trigger_or :
-								  (registers_cwtrigsrc[7:6] == 2'b01) ? trigger_and : 
-								  (registers_cwtrigsrc[7:6] == 2'b10) ? (~trigger_and) :
+	 assign trigger_ext =  (registers_cwtrigsrc[15:14] == 2'b00) ? trigger_or :
+								  (registers_cwtrigsrc[15:14] == 2'b01) ? trigger_and : 
+								  (registers_cwtrigsrc[15:14] == 2'b10) ? (~trigger_and) :
 								  1'b0;
 	
 	 wire trigger;	 		  
@@ -591,7 +606,7 @@ module reg_chipwhisperer(
 	 always @(reg_hypaddress) begin
 		case (reg_hypaddress)
             `CW_EXTCLK_ADDR: reg_hyplen_reg <= 1;
-				`CW_TRIGSRC_ADDR: reg_hyplen_reg <= 1;
+				`CW_TRIGSRC_ADDR: reg_hyplen_reg <= 2;
 				`CW_TRIGMOD_ADDR: reg_hyplen_reg <= 1;
 				`CW_IOROUTE_ADDR: reg_hyplen_reg <= 8;
 				`CW_IOREAD_ADDR: reg_hyplen_reg <= 1;
@@ -622,7 +637,7 @@ module reg_chipwhisperer(
 		if (reg_read) begin
 			case (reg_address)
 				`CW_EXTCLK_ADDR: reg_datao_reg <= registers_cwextclk; 
-				`CW_TRIGSRC_ADDR: reg_datao_reg <= registers_cwtrigsrc; 
+				`CW_TRIGSRC_ADDR: reg_datao_reg <= registers_cwtrigsrc[reg_bytecnt*8 +: 8]; 
 				`CW_TRIGMOD_ADDR: reg_datao_reg <= registers_cwtrigmod; 
 				`CW_IOROUTE_ADDR: reg_datao_reg <= registers_iorouting[reg_bytecnt*8 +: 8];
 				`CW_IOREAD_ADDR: reg_datao_reg <= {4'b0000, registers_ioread};
@@ -635,16 +650,16 @@ module reg_chipwhisperer(
 		if (reset) begin
 			registers_cwextclk <= 8'b00000011;
 `ifdef DISABLE_FPA_IN
-			registers_cwtrigsrc <= 8'b00100000;
+			registers_cwtrigsrc <= 16'b0000000000100000;
 `else
-			registers_cwtrigsrc <= 8'b00000001;
+			registers_cwtrigsrc <= 16'b0000000000000001;
 `endif
 			registers_cwtrigmod <= 0;
 			registers_iorouting <= 64'b00000010_00000001;
 		end else if (reg_write) begin
 			case (reg_address)
 				`CW_EXTCLK_ADDR: registers_cwextclk <= reg_datai;
-				`CW_TRIGSRC_ADDR: registers_cwtrigsrc <= reg_datai;
+				`CW_TRIGSRC_ADDR: registers_cwtrigsrc[reg_bytecnt*8 +: 8] <= reg_datai;
 				`CW_TRIGMOD_ADDR: registers_cwtrigmod <= reg_datai;
 				`CW_IOROUTE_ADDR: registers_iorouting[reg_bytecnt*8 +: 8] <= reg_datai;
 				default: ;
