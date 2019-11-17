@@ -16,7 +16,7 @@ import sys
 #DESIGN_BASE = "cwlite_ise\\cwlite_interface"
 
 #Linux Path
-XILINX_DIR = "/opt/Xilinx/14.7/ISE_DS/ISE/bin/lin64/"
+XILINX_DIR = "/run/media/maxamillion/external/Xilinx/14.7/ISE_DS/ISE/bin/lin64/"
 DESIGN_BASE = "cwlite_ise/cwlite_interface"
 
 def decodeFARMIN(data, indx):
@@ -28,7 +28,7 @@ def decodeFARMIN(data, indx):
     bram = (0xC000 & d) >> 14
     minor = (0x03FF & d)
 
-    print "%04x: FAR_MIN Data: BRAM %d, Minor %d"%(d, bram, minor)
+    print "%04x: FAR_MIN Data: BRAM %d, Minor %d" % (d, bram, minor)
 
     fpga_addr['bram'] = bram
     fpga_addr['bram_minor'] = minor

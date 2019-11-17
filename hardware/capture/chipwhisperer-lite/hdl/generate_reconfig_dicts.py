@@ -16,7 +16,7 @@ import pickle
 #DESIGN_BASE = "cwlite_ise\\cwlite_interface"
 
 #Linux Path
-XILINX_DIR = "/opt/Xilinx/14.7/ISE_DS/ISE/bin/lin64/"
+XILINX_DIR = "/run/media/maxamillion/external/Xilinx/14.7/ISE_DS/ISE/bin/lin64/"
 DESIGN_BASE = "cwlite_ise/cwlite_interface"
 
 def cleanup():
@@ -130,7 +130,7 @@ def generateAllDiffs(comp, desc, filename, values):
 
 #Validate system is OK
 
-status = os.system('python validate_dcm_locations.py')
+status = os.system('python2 validate_dcm_locations.py')
 
 if (status != 0):
     sys.exit()
